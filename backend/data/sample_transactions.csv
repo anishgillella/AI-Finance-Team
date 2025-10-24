@@ -1,0 +1,21 @@
+date,category,amount,description,type
+2024-01-05,IT,5000,Software licenses,expense
+2024-01-08,Marketing,2500,Social media campaign,expense
+2024-01-10,Revenue,15000,Q1 sales contract,income
+2024-01-12,Office,1200,Desk supplies,expense
+2024-01-15,Travel,3500,Client visit flights,expense
+2024-01-18,Revenue,8000,Consulting work,income
+2024-01-20,IT,1500,Cloud services,expense
+2024-01-22,HR,4000,Team training,expense
+2024-01-25,Revenue,12000,Software product sales,income
+2024-01-28,Utilities,800,Electricity and internet,expense
+2024-02-02,IT,6000,Security software,expense
+2024-02-05,Marketing,3000,Advertisement spend,expense
+2024-02-08,Revenue,9000,Contract renewal,income
+2024-02-10,Office,900,Equipment maintenance,expense
+2024-02-12,Travel,2800,Conference attendance,expense
+2024-02-15,Revenue,11000,Subscription renewals,income
+2024-02-18,IT,1800,Hardware upgrade,expense
+2024-02-20,HR,3500,Recruitment fees,expense
+2024-02-22,Revenue,7500,Services rendered,income
+2024-02-28,Utilities,950,Internet upgrade,expense

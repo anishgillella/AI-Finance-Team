@@ -1,0 +1,33 @@
+{
+  "name": "ai-finance-agent",
+  "version": "1.0.0",
+  "description": "AI Finance Dashboard Agent using LangGraph with GPT-5-Nano and Zod schemas",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "test:supabase": "ts-node test-supabase-connection.ts",
+    "test": "jest"
+  },
+  "type": "module",
+  "dependencies": {
+    "langchain": "^0.1.30",
+    "@langchain/core": "^0.1.50",
+    "@langchain/langgraph": "^0.0.30",
+    "@langchain/openai": "^0.0.30",
+    "@supabase/supabase-js": "^2.40.0",
+    "axios": "^1.7.0",
+    "csv-parse": "^5.5.0",
+    "pdfkit": "^0.13.0",
+    "dotenv": "^16.3.1",
+    "postgres": "^3.4.7",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/pdfkit": "^0.12.10",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.3.0"
+  }
+}
