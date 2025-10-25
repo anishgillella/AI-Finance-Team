@@ -12,11 +12,19 @@ node_modules/
 .next/
 out/
 
-# Misc
-.DS_Store
+# Environment & Secrets
 .env
 .env.local
 .env.*.local
+.env.production.local
+
+# Debug & Check Scripts
+check-*.js
+test-*.sh
+query-*.js
+
+# Misc
+.DS_Store
 *.log
 *.swp
 *.swo
@@ -30,3 +38,14 @@ out/
 
 # OS
 Thumbs.db
+.DS_Store
+
+# Backend specific
+backend/backend/
+backend/dist/
+backend/.env
+backend/.env.local
+
+# Frontend specific
+frontend/.next/
+frontend/out/

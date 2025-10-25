@@ -7,7 +7,11 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
-    "test": "npm run build"
+    "test": "npm run build",
+    "data:insert": "ts-node src/data/insert-mock-data.ts",
+    "import:polygon": "ts-node data/sample-import.ts",
+    "import:polygon:aapl": "ts-node data/sample-import.ts AAPL",
+    "import:polygon:custom": "ts-node data/sample-import.ts"
   },
   "type": "module",
   "dependencies": {
@@ -19,6 +23,7 @@
     "axios": "^1.7.0",
     "csv-parse": "^5.5.0",
     "dotenv": "^16.3.1",
+    "jszip": "^3.10.1",
     "postgres": "^3.4.7",
     "zod": "^3.22.4"
   },
