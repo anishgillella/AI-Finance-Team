@@ -42,200 +42,123 @@ export async function loadSchemaRegistry(): Promise<FullSchema> {
   console.log("📋 Loading schema registry...");
 
   try {
-    // Mock schema data - matches the actual database schema for FINANCE project
+    // Real schema data from Supabase public schema
     const mockData = [
       {
-        table_name: "users",
-        description: "User financial profiles",
+        table_name: "customers",
+        description: "Customer profiles and company information",
         columns: {
           id: { type: "uuid", description: "Primary key" },
-          email: { type: "text", description: "User email" },
-          name: { type: "text", description: "User name" },
-          phone: { type: "text", description: "User phone" },
-          country: { type: "text", description: "User country" },
-          created_at: { type: "timestamp", description: "Creation timestamp" },
-          updated_at: { type: "timestamp", description: "Last update timestamp" },
-        },
-        relationships: [{ table: "accounts", join_key: "id:user_id" }],
-        sensitive_fields: ["id", "email", "phone"],
-      },
-      {
-        table_name: "accounts",
-        description: "Financial accounts",
-        columns: {
-          id: { type: "uuid", description: "Primary key" },
-          user_id: { type: "uuid", description: "User reference" },
-          account_type: { type: "text", description: "Type of account" },
-          account_name: { type: "text", description: "Account display name" },
-          balance: { type: "numeric", description: "Current balance", unit: "USD", aggregatable: "SUM,AVG" },
-          currency: { type: "text", description: "Currency code" },
-          account_number: { type: "text", description: "Account number" },
-          institution_name: { type: "text", description: "Financial institution" },
+          phone_number: { type: "text", description: "Customer phone number", aggregatable: "false" },
+          company_name: { type: "text", description: "Company name", aggregatable: "false" },
+          industry: { type: "text", description: "Industry sector", aggregatable: "false" },
+          location: { type: "text", description: "Geographic location", aggregatable: "false" },
+          email: { type: "text", description: "Customer email address", aggregatable: "false" },
+          first_name: { type: "text", description: "Customer first name", aggregatable: "false" },
+          last_name: { type: "text", description: "Customer last name", aggregatable: "false" },
           created_at: { type: "timestamp", description: "Creation timestamp" },
           updated_at: { type: "timestamp", description: "Last update timestamp" },
         },
         relationships: [
-          { table: "users", join_key: "user_id:id" },
-          { table: "transactions", join_key: "id:account_id" },
-          { table: "portfolio_holdings", join_key: "id:account_id" },
+          { table: "conversations", join_key: "id:customer_id" },
+          { table: "customer_memory", join_key: "id:customer_id" },
         ],
-        sensitive_fields: ["id", "user_id", "account_number"],
+        sensitive_fields: ["id", "email", "phone_number"],
       },
       {
-        table_name: "securities",
-        description: "Investment securities (stocks, ETFs, bonds, etc.)",
+        table_name: "conversations",
+        description: "Customer conversation transcripts and metadata",
         columns: {
           id: { type: "uuid", description: "Primary key" },
-          ticker: { type: "text", description: "Stock ticker symbol" },
-          name: { type: "text", description: "Security name" },
-          security_type: { type: "text", description: "Type (stock, etf, bond, etc.)" },
-          sector: { type: "text", description: "Industry sector" },
-          industry: { type: "text", description: "Specific industry" },
-          market_cap: { type: "numeric", description: "Market capitalization", unit: "USD" },
-          description: { type: "text", description: "Company description" },
-          created_at: { type: "timestamp", description: "Creation timestamp" },
-          updated_at: { type: "timestamp", description: "Last update timestamp" },
+          call_id: { type: "text", description: "Unique call identifier", aggregatable: "false" },
+          customer_id: { type: "uuid", description: "Reference to customer" },
+          transcript: { type: "text", description: "Full conversation transcript", aggregatable: "false" },
+          created_at: { type: "timestamp", description: "Conversation timestamp" },
         },
         relationships: [
-          { table: "portfolio_holdings", join_key: "id:security_id" },
-          { table: "transactions", join_key: "id:security_id" },
-          { table: "price_history", join_key: "id:security_id" },
-          { table: "dividends", join_key: "id:security_id" },
+          { table: "customers", join_key: "customer_id:id" },
+          { table: "customer_memory", join_key: "call_id:call_id" },
+          { table: "embeddings", join_key: "call_id:call_id" },
         ],
-        sensitive_fields: ["id"],
+        sensitive_fields: ["id", "customer_id", "transcript"],
       },
       {
-        table_name: "transactions",
-        description: "Financial transactions (trades, deposits, withdrawals)",
+        table_name: "analysis_results",
+        description: "Financial analysis results with KPIs and anomalies",
         columns: {
-          id: { type: "uuid", description: "Primary key" },
-          account_id: { type: "uuid", description: "Account reference" },
-          security_id: { type: "uuid", description: "Security reference (optional)" },
-          transaction_type: { type: "text", description: "Type of transaction" },
-          amount: { type: "numeric", description: "Transaction amount", unit: "USD", aggregatable: "SUM,AVG,COUNT" },
-          quantity: { type: "numeric", description: "Quantity (for trades)" },
-          price_per_unit: { type: "numeric", description: "Price per unit" },
-          transaction_date: { type: "date", description: "Date of transaction" },
-          description: { type: "text", description: "Transaction description" },
-          category: { type: "text", description: "Transaction category", aggregatable: "true" },
-          merchant: { type: "text", description: "Merchant/counterparty" },
-          status: { type: "text", description: "Transaction status" },
-          created_at: { type: "timestamp", description: "Creation timestamp" },
+          id: { type: "bigint", description: "Primary key" },
+          upload_id: { type: "bigint", description: "Reference to uploaded file" },
+          kpis: { type: "jsonb", description: "Key performance indicators as JSON", aggregatable: "false" },
+          anomalies: { type: "jsonb", description: "Detected anomalies as JSON", aggregatable: "false" },
+          created_at: { type: "timestamp", description: "Analysis timestamp" },
         },
         relationships: [
-          { table: "accounts", join_key: "account_id:id" },
-          { table: "securities", join_key: "security_id:id" },
+          { table: "uploads", join_key: "upload_id:id" },
+          { table: "evaluations", join_key: "id:analysis_id" },
         ],
-        sensitive_fields: ["id", "account_id"],
+        sensitive_fields: ["id", "upload_id"],
       },
       {
-        table_name: "portfolio_holdings",
-        description: "Current investment holdings",
+        table_name: "uploads",
+        description: "Uploaded financial data files",
         columns: {
-          id: { type: "uuid", description: "Primary key" },
-          account_id: { type: "uuid", description: "Account reference" },
-          security_id: { type: "uuid", description: "Security reference" },
-          quantity: { type: "numeric", description: "Number of shares held", aggregatable: "SUM,AVG" },
-          average_cost: { type: "numeric", description: "Average cost per share", unit: "USD" },
-          current_price: { type: "numeric", description: "Current market price", unit: "USD" },
-          market_value: { type: "numeric", description: "Total market value", unit: "USD", aggregatable: "SUM,AVG" },
-          acquisition_date: { type: "date", description: "Date acquired" },
-          created_at: { type: "timestamp", description: "Creation timestamp" },
-          updated_at: { type: "timestamp", description: "Last update timestamp" },
+          id: { type: "bigint", description: "Primary key" },
+          file_name: { type: "text", description: "Name of uploaded file", aggregatable: "false" },
+          record_count: { type: "integer", description: "Number of records in file", aggregatable: "SUM,AVG" },
+          created_at: { type: "timestamp", description: "Upload timestamp" },
         },
         relationships: [
-          { table: "accounts", join_key: "account_id:id" },
-          { table: "securities", join_key: "security_id:id" },
+          { table: "analysis_results", join_key: "id:upload_id" },
         ],
         sensitive_fields: ["id"],
       },
       {
-        table_name: "price_history",
-        description: "Historical price data (OHLCV)",
+        table_name: "embeddings",
+        description: "Vector embeddings for conversation analysis",
         columns: {
-          id: { type: "uuid", description: "Primary key" },
-          security_id: { type: "uuid", description: "Security reference" },
-          history_date: { type: "date", description: "Date of price data" },
-          open_price: { type: "numeric", description: "Opening price", unit: "USD" },
-          close_price: { type: "numeric", description: "Closing price", unit: "USD" },
-          high_price: { type: "numeric", description: "High price of the day", unit: "USD" },
-          low_price: { type: "numeric", description: "Low price of the day", unit: "USD" },
-          volume: { type: "bigint", description: "Trading volume" },
-          created_at: { type: "timestamp", description: "Creation timestamp" },
-        },
-        relationships: [{ table: "securities", join_key: "security_id:id" }],
-        sensitive_fields: ["id"],
-      },
-      {
-        table_name: "dividends",
-        description: "Dividend payment records",
-        columns: {
-          id: { type: "uuid", description: "Primary key" },
-          security_id: { type: "uuid", description: "Security reference" },
-          account_id: { type: "uuid", description: "Account reference" },
-          ex_date: { type: "date", description: "Ex-dividend date" },
-          record_date: { type: "date", description: "Record date" },
-          payment_date: { type: "date", description: "Payment date" },
-          amount_per_share: { type: "numeric", description: "Dividend per share", unit: "USD" },
-          total_amount: { type: "numeric", description: "Total dividend amount", unit: "USD", aggregatable: "SUM" },
+          call_id: { type: "text", description: "Reference to conversation call", aggregatable: "false" },
+          embedding: { type: "vector", description: "1024-dimensional embedding vector", aggregatable: "false" },
+          embedding_type: { type: "text", description: "Type of embedding (full, summary, etc)", aggregatable: "false" },
           created_at: { type: "timestamp", description: "Creation timestamp" },
         },
         relationships: [
-          { table: "securities", join_key: "security_id:id" },
-          { table: "accounts", join_key: "account_id:id" },
+          { table: "conversations", join_key: "call_id:call_id" },
         ],
-        sensitive_fields: ["id"],
+        sensitive_fields: ["call_id", "embedding"],
       },
       {
-        table_name: "budgets",
-        description: "Monthly spending budgets",
+        table_name: "customer_memory",
+        description: "Persistent memory and context for customers",
         columns: {
           id: { type: "uuid", description: "Primary key" },
-          user_id: { type: "uuid", description: "User reference" },
-          category: { type: "text", description: "Budget category", aggregatable: "true" },
-          limit_amount: { type: "numeric", description: "Budget limit", unit: "USD", aggregatable: "SUM" },
-          spent_amount: { type: "numeric", description: "Amount spent", unit: "USD", aggregatable: "SUM" },
-          budget_month: { type: "integer", description: "Month (1-12)" },
-          budget_year: { type: "integer", description: "Year" },
+          customer_id: { type: "uuid", description: "Reference to customer" },
+          call_id: { type: "text", description: "Reference to conversation call", aggregatable: "false" },
+          memory_type: { type: "text", description: "Type of memory (preference, history, etc)", aggregatable: "false" },
+          content: { type: "text", description: "Memory content", aggregatable: "false" },
           created_at: { type: "timestamp", description: "Creation timestamp" },
-          updated_at: { type: "timestamp", description: "Last update timestamp" },
         },
-        relationships: [{ table: "users", join_key: "user_id:id" }],
-        sensitive_fields: ["user_id"],
+        relationships: [
+          { table: "customers", join_key: "customer_id:id" },
+          { table: "conversations", join_key: "call_id:call_id" },
+        ],
+        sensitive_fields: ["id", "customer_id", "content"],
       },
       {
-        table_name: "financial_goals",
-        description: "User financial goals and targets",
+        table_name: "evaluations",
+        description: "Quality evaluations of analysis results",
         columns: {
-          id: { type: "uuid", description: "Primary key" },
-          user_id: { type: "uuid", description: "User reference" },
-          goal_name: { type: "text", description: "Name of the goal" },
-          goal_type: { type: "text", description: "Type of goal (savings, investment, retirement, etc.)" },
-          target_amount: { type: "numeric", description: "Target amount", unit: "USD" },
-          current_amount: { type: "numeric", description: "Current amount", unit: "USD" },
-          target_date: { type: "date", description: "Target completion date" },
-          priority: { type: "text", description: "Priority level" },
-          status: { type: "text", description: "Goal status" },
-          created_at: { type: "timestamp", description: "Creation timestamp" },
-          updated_at: { type: "timestamp", description: "Last update timestamp" },
+          id: { type: "bigint", description: "Primary key" },
+          analysis_id: { type: "bigint", description: "Reference to analysis results" },
+          accuracy: { type: "double", description: "Accuracy score 0-100", aggregatable: "AVG,MIN,MAX" },
+          faithfulness: { type: "double", description: "Faithfulness score 0-100", aggregatable: "AVG,MIN,MAX" },
+          reasoning_quality: { type: "double", description: "Reasoning quality score 0-100", aggregatable: "AVG,MIN,MAX" },
+          overall_score: { type: "double", description: "Overall evaluation score 0-100", aggregatable: "AVG,MIN,MAX" },
+          created_at: { type: "timestamp", description: "Evaluation timestamp" },
         },
-        relationships: [{ table: "users", join_key: "user_id:id" }],
-        sensitive_fields: ["user_id"],
-      },
-      {
-        table_name: "expense_categories",
-        description: "Custom expense categories",
-        columns: {
-          id: { type: "uuid", description: "Primary key" },
-          user_id: { type: "uuid", description: "User reference" },
-          category_name: { type: "text", description: "Category name" },
-          color: { type: "text", description: "Color code for UI" },
-          icon: { type: "text", description: "Icon emoji or reference" },
-          description: { type: "text", description: "Category description" },
-          created_at: { type: "timestamp", description: "Creation timestamp" },
-        },
-        relationships: [{ table: "users", join_key: "user_id:id" }],
-        sensitive_fields: ["user_id"],
+        relationships: [
+          { table: "analysis_results", join_key: "analysis_id:id" },
+        ],
+        sensitive_fields: ["id", "analysis_id"],
       },
     ] as any[];
 
@@ -302,4 +225,45 @@ export async function getSchemaDescription(): Promise<string> {
 export async function getTableSchema(tableName: string): Promise<TableSchema | null> {
   const schema = await loadSchemaRegistry();
   return schema[tableName] || null;
+}
+
+/**
+ * Get core schema subset (essential tables only for token optimization)
+ * Used as fallback when semantic retrieval returns limited results
+ */
+export async function getCoreSchema(): Promise<FullSchema> {
+  const fullSchema = await loadSchemaRegistry();
+  const coreTableNames = ["customers", "conversations", "analysis_results"];
+  
+  const coreSchema: FullSchema = {};
+  for (const tableName of coreTableNames) {
+    if (fullSchema[tableName]) {
+      coreSchema[tableName] = fullSchema[tableName];
+    }
+  }
+  
+  return coreSchema;
+}
+
+/**
+ * Get core schema description (optimized for tokens)
+ */
+export async function getCoreSchemaDescription(): Promise<string> {
+  const coreSchema = await getCoreSchema();
+  let description = "## CORE SCHEMA (Optimized for Token Usage)\n\n";
+  description += "Essential tables for financial analysis and customer interactions:\n\n";
+
+  for (const tableName in coreSchema) {
+    const tableSchema = coreSchema[tableName];
+    description += `### \`${tableName}\` - ${tableSchema.description}\n`;
+    description += "Columns: ";
+    const columnNames = Object.keys(tableSchema.columns).slice(0, 8);
+    description += columnNames.join(", ");
+    if (Object.keys(tableSchema.columns).length > 8) {
+      description += ` (+ ${Object.keys(tableSchema.columns).length - 8} more)`;
+    }
+    description += "\n\n";
+  }
+
+  return description;
 }

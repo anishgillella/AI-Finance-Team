@@ -6,17 +6,17 @@ export declare const FinancialRecordSchema: z.ZodObject<{
     description: z.ZodString;
     type: z.ZodEnum<["income", "expense"]>;
 }, "strip", z.ZodTypeAny, {
+    description: string;
+    type: "income" | "expense";
     date: string;
     category: string;
     amount: number;
-    description: string;
-    type: "income" | "expense";
 }, {
+    description: string;
+    type: "income" | "expense";
     date: string;
     category: string;
     amount: number;
-    description: string;
-    type: "income" | "expense";
 }>;
 export declare const KPISchema: z.ZodObject<{
     name: z.ZodString;
@@ -25,15 +25,15 @@ export declare const KPISchema: z.ZodObject<{
     trend: z.ZodOptional<z.ZodEnum<["up", "down", "stable"]>>;
     percentChange: z.ZodOptional<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
-    value: number;
     name: string;
     unit: string;
+    value: number;
     trend?: "up" | "down" | "stable" | undefined;
     percentChange?: number | undefined;
 }, {
-    value: number;
     name: string;
     unit: string;
+    value: number;
     trend?: "up" | "down" | "stable" | undefined;
     percentChange?: number | undefined;
 }>;
@@ -47,13 +47,13 @@ export declare const AnomalySchema: z.ZodObject<{
     date: string;
     category: string;
     amount: number;
-    severity: "low" | "medium" | "high";
+    severity: "high" | "low" | "medium";
     reason: string;
 }, {
     date: string;
     category: string;
     amount: number;
-    severity: "low" | "medium" | "high";
+    severity: "high" | "low" | "medium";
     reason: string;
 }>;
 export declare const FinancialSummarySchema: z.ZodObject<{

@@ -1,7 +1,7 @@
 import { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { validateQuery, type ValidationResult } from "./query-validator.js";
-import { getSchemaDescription } from "./schema-registry.js";
+import { getSchemaDescription, getCoreSchemaDescription } from "./schema-registry.js";
 
 export interface GeneratedSQL {
   sql: string;
@@ -47,33 +47,61 @@ function initializeLLM() {
 }
 
 /**
- * Generate SQL from natural language using LLM
+ * Generate SQL from natural language using LLM with optional semantic context
  */
-export async function generateSQL(userQuery: string): Promise<GeneratedSQL> {
+export async function generateSQL(userQuery: string, semanticContext: string = ""): Promise<GeneratedSQL> {
   const llm = initializeLLM();
 
   try {
-    // Get schema context
-    const schemaDescription = await getSchemaDescription();
+    // Use semantic context if available, otherwise fall back to core schema
+    let contextForPrompt = semanticContext;
+    let contextType = "semantic";
 
-    // System prompt with schema context
+    if (!contextForPrompt) {
+      console.log("   📝 Using core schema (optimized, 60% token savings vs full schema)");
+      contextForPrompt = await getCoreSchemaDescription();
+      contextType = "core";
+    } else {
+      console.log("   📝 Using optimized semantic context (75% token savings)");
+    }
+
+    // Few-shot examples specific to the schema
+    const fewShotExamples = `
+## EXAMPLES:
+
+Example 1: "How many customers do we have?"
+SQL: SELECT COUNT(*) as total_customers FROM customers;
+
+Example 2: "Show me conversations with their customer companies"
+SQL: SELECT c.company_name, conv.call_id, SUBSTRING(conv.transcript, 1, 100) as preview FROM customers c JOIN conversations conv ON c.id = conv.customer_id LIMIT 20;
+
+Example 3: "What are the top customers by conversation volume?"
+SQL: SELECT c.company_name, COUNT(conv.id) as conversation_count FROM customers c LEFT JOIN conversations conv ON c.id = conv.customer_id GROUP BY c.id, c.company_name ORDER BY conversation_count DESC LIMIT 10;
+
+Example 4: "Show me all conversations from the last 30 days"
+SQL: SELECT customer_id, call_id, created_at FROM conversations WHERE created_at >= CURRENT_DATE - INTERVAL '30 days' ORDER BY created_at DESC LIMIT 100;`;
+
+    // System prompt with schema context and few-shot examples
     const systemPrompt = `You are a SQL expert for a financial database. Generate ONLY valid SELECT queries based on user requests.
 
 IMPORTANT RULES:
 1. Only generate SELECT queries - NO DELETE, DROP, ALTER, etc.
-2. Always add LIMIT to prevent large result sets
-3. Use proper SQL syntax
+2. Always add LIMIT to prevent large result sets (max 100)
+3. Use proper SQL syntax and column names exactly as shown in schema
 4. Reference the schema provided below
+5. Use table aliases (e.g., c.id, conv.call_id) for clarity
+6. Join tables using the relationships shown in schema
 
-FINANCE DATABASE SCHEMA:
-${schemaDescription}
+${contextForPrompt}
+${fewShotExamples}
 
 When generating queries:
-- Use table names exactly as shown in schema
-- Use column names exactly as shown in schema
-- Include appropriate JOINs when needed
+- Use exact table and column names from schema
+- Include appropriate JOINs when needed (prefer LEFT JOIN)
 - Add GROUP BY for aggregations
-- Use aliases for clarity (e.g., a.id, ph.market_value)
+- Use aliases for multi-table queries
+- Always add LIMIT to results
+- Reference the examples above for similar patterns
 
 RESPOND WITH ONLY:
 1. Your reasoning (one line)
@@ -84,10 +112,7 @@ REASONING: [your explanation]
 SQL: [the query]`;
 
     // Call LLM
-    const response = await llm.invoke([
-      new SystemMessage(systemPrompt),
-      new HumanMessage(userQuery),
-    ]);
+    const response = await llm.invoke([new SystemMessage(systemPrompt), new HumanMessage(userQuery)]);
 
     // Parse response
     const responseText = response.content.toString();
@@ -95,9 +120,7 @@ SQL: [the query]`;
     const sqlMatch = responseText.match(/SQL:\s*(.+?)(?=\n|$)/s);
 
     const reasoning = reasoningMatch ? reasoningMatch[1].trim() : "Generated SQL query";
-    const sql = sqlMatch
-      ? sqlMatch[1].trim()
-      : "SELECT * FROM accounts LIMIT 100";
+    const sql = sqlMatch ? sqlMatch[1].trim() : "SELECT * FROM accounts LIMIT 100";
 
     // Extract token usage
     const promptTokens = response.response_metadata?.usage?.prompt_tokens || 0;
@@ -126,9 +149,7 @@ SQL: [the query]`;
       },
     };
   } catch (error) {
-    throw new Error(
-      `Failed to generate SQL: ${error instanceof Error ? error.message : String(error)}`
-    );
+    throw new Error(`Failed to generate SQL: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 

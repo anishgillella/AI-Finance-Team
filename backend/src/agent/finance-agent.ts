@@ -3,6 +3,7 @@ import postgres from "postgres";
 import { generateSQL, getTokenUsage, resetTokenUsage, type TokenUsage, type GeneratedSQL } from "./sql-generator.js";
 import { validateQuery, type ValidationResult } from "./query-validator.js";
 import { getSchemaDescription, loadSchemaRegistry } from "./schema-registry.js";
+import { SemanticRetriever } from "./semantic-retriever.js";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -26,6 +27,11 @@ export interface AgentResponse {
   tokens: TokenUsage;
   conversationHistory: ConversationMessage[];
   executionSteps: string[];
+  semanticContext?: {
+    tokensEstimated: number;
+    modelsUsed: number;
+    columnsUsed: number;
+  };
   errors?: string[];
 }
 
@@ -68,9 +74,8 @@ async function toolLoadSchema(): Promise<string> {
   try {
     console.log("🔧 Tool 1: Loading Schema Registry...");
     await loadSchemaRegistry();
-    const schemaDescription = await getSchemaDescription();
     console.log("   ✓ Schema loaded and validated");
-    return schemaDescription;
+    return "Schema loaded";
   } catch (error) {
     throw new AgentException(
       "SCHEMA_LOAD_FAILED",
@@ -80,12 +85,27 @@ async function toolLoadSchema(): Promise<string> {
 }
 
 /**
- * Tool 2: Generate SQL from natural language using LLM
+ * Tool 2: Retrieve semantic context using Qdrant
  */
-async function toolGenerateSQL(userQuery: string): Promise<GeneratedSQL> {
+async function toolGetSemanticContext(userQuery: string, retriever: SemanticRetriever): Promise<string> {
   try {
-    console.log("🔧 Tool 2: Generating SQL from natural language...");
-    const result = await generateSQL(userQuery);
+    console.log("🔧 Tool 2: Retrieving semantic context from Qdrant...");
+    const context = await retriever.getFullContext(userQuery);
+    console.log("   ✓ Semantic context retrieved");
+    return context;
+  } catch (error) {
+    console.warn("   ⚠️  Semantic retriever unavailable, falling back to full schema");
+    return "";
+  }
+}
+
+/**
+ * Tool 3: Generate SQL from natural language using LLM
+ */
+async function toolGenerateSQL(userQuery: string, semanticContext: string): Promise<GeneratedSQL> {
+  try {
+    console.log("🔧 Tool 3: Generating SQL from natural language...");
+    const result = await generateSQL(userQuery, semanticContext);
     console.log(`   ✓ SQL generated: ${result.sql.substring(0, 60)}...`);
     return result;
   } catch (error) {
@@ -96,19 +116,19 @@ async function toolGenerateSQL(userQuery: string): Promise<GeneratedSQL> {
 }
 
 /**
- * Tool 3: Validate query syntax and semantics
+ * Tool 4: Validate query syntax and semantics
  */
 async function toolValidateQuery(sql: string, attemptNumber: number = 1): Promise<ValidationResult> {
   try {
-    console.log(`🔧 Tool 3: Validating query (Attempt ${attemptNumber})...`);
+    console.log(`🔧 Tool 4: Validating query (Attempt ${attemptNumber})...`);
     const result = await validateQuery(sql);
-    
+
     if (result.valid) {
       console.log("   ✓ Query validation passed");
     } else {
       console.log(`   ⚠ Validation errors: ${result.errors.join(", ")}`);
     }
-    
+
     return result;
   } catch (error) {
     throw new ValidationException(
@@ -118,21 +138,22 @@ async function toolValidateQuery(sql: string, attemptNumber: number = 1): Promis
 }
 
 /**
- * Tool 4: Regenerate SQL if validation fails
+ * Tool 5: Regenerate SQL if validation fails
  */
 async function toolRegenerateSQLWithFeedback(
   userQuery: string,
-  validationErrors: string[]
+  validationErrors: string[],
+  semanticContext: string
 ): Promise<GeneratedSQL> {
   try {
-    console.log("🔧 Tool 4: Regenerating SQL with validation feedback...");
-    
+    console.log("🔧 Tool 5: Regenerating SQL with validation feedback...");
+
     const feedbackPrompt = `${userQuery}
     
 IMPORTANT: The previous query had these errors - please fix them:
 ${validationErrors.map((e) => `- ${e}`).join("\n")}`;
 
-    const result = await generateSQL(feedbackPrompt);
+    const result = await generateSQL(feedbackPrompt, semanticContext);
     console.log(`   ✓ SQL regenerated: ${result.sql.substring(0, 60)}...`);
     return result;
   } catch (error) {
@@ -143,17 +164,15 @@ ${validationErrors.map((e) => `- ${e}`).join("\n")}`;
 }
 
 /**
- * Tool 5: Execute validated query against database
+ * Tool 6: Execute validated query against database
  */
 async function toolExecuteQuery(sql: string): Promise<any[]> {
   try {
-    console.log("🔧 Tool 5: Executing query against database...");
+    console.log("🔧 Tool 6: Executing query against database...");
 
     const connectionString = process.env.SUPABASE_CONNECTION_STRING;
     if (!connectionString) {
-      throw new ExecutionException(
-        "SUPABASE_CONNECTION_STRING not configured for query execution"
-      );
+      throw new ExecutionException("SUPABASE_CONNECTION_STRING not configured for query execution");
     }
 
     const sql_client = postgres(connectionString);
@@ -168,9 +187,9 @@ async function toolExecuteQuery(sql: string): Promise<any[]> {
     return queryResults;
   } catch (error) {
     if (error instanceof AgentException) throw error;
-    
+
     const errorMsg = error instanceof Error ? error.message : String(error);
-    
+
     if (errorMsg.includes("connection")) {
       throw new ExecutionException(
         `Database connection failed. Ensure SUPABASE_CONNECTION_STRING is configured.`
@@ -178,20 +197,20 @@ async function toolExecuteQuery(sql: string): Promise<any[]> {
     } else if (errorMsg.includes("syntax")) {
       throw new ExecutionException(`SQL syntax error in query: ${errorMsg}`);
     }
-    
+
     throw new ExecutionException(`Query execution failed: ${errorMsg}`);
   }
 }
 
 /**
- * Tool 6: Format results with insights
+ * Tool 7: Format results with insights
  */
 function toolFormatResults(
   sql: string,
   rawData: any[],
   reasoning: string
 ): { summary: string; insights: string[] } {
-  console.log("🔧 Tool 6: Formatting results with insights...");
+  console.log("🔧 Tool 7: Formatting results with insights...");
 
   const insights: string[] = [];
   let summary = `Query returned ${rawData.length} record(s).\n\n`;
@@ -241,6 +260,9 @@ export async function runFinanceAgent(
   let currentReasoning = "";
   let validationResult: ValidationResult | null = null;
   let queryResults: any[] = [];
+  let semanticContextInfo = { tokensEstimated: 0, modelsUsed: 0, columnsUsed: 0 };
+
+  const retriever = new SemanticRetriever();
 
   try {
     console.log("\n" + "=".repeat(80));
@@ -261,26 +283,44 @@ export async function runFinanceAgent(
     executionSteps.push("STEP 1: Loading schema registry...");
     await toolLoadSchema();
 
-    // STEP 2: Generate SQL
-    executionSteps.push("STEP 2: Generating SQL from natural language...");
-    let sqlResult = await toolGenerateSQL(userQuery);
+    // STEP 2: Get Semantic Context (NEW)
+    executionSteps.push("STEP 2: Retrieving semantic context from Qdrant...");
+    let semanticContext = "";
+    try {
+      await retriever.initialize();
+      const fullContext = await retriever.buildContext(userQuery);
+      semanticContext = fullContext.context_text;
+      semanticContextInfo = {
+        tokensEstimated: fullContext.token_estimate,
+        modelsUsed: fullContext.models.length,
+        columnsUsed: fullContext.columns.length,
+      };
+      console.log(`   ✓ Semantic context retrieved (est. ${fullContext.token_estimate} tokens)`);
+    } catch (error) {
+      console.warn("   ⚠️  Semantic context unavailable, using full schema fallback");
+      semanticContext = "";
+    }
+
+    // STEP 3: Generate SQL
+    executionSteps.push("STEP 3: Generating SQL from natural language...");
+    let sqlResult = await toolGenerateSQL(userQuery, semanticContext);
     currentSQL = sqlResult.sql;
     currentReasoning = sqlResult.reasoning;
 
-    // STEP 3: Validate Query (First Attempt)
-    executionSteps.push("STEP 3: Validating generated SQL (Attempt 1)...");
+    // STEP 4: Validate Query (First Attempt)
+    executionSteps.push("STEP 4: Validating generated SQL (Attempt 1)...");
     validationResult = await toolValidateQuery(currentSQL, 1);
 
-    // STEP 4: Retry if validation fails
+    // STEP 5: Retry if validation fails
     if (!validationResult.valid) {
-      executionSteps.push("STEP 4: Query validation failed, attempting to regenerate with feedback...");
-      
-      sqlResult = await toolRegenerateSQLWithFeedback(userQuery, validationResult.errors);
+      executionSteps.push("STEP 5: Query validation failed, attempting to regenerate with feedback...");
+
+      sqlResult = await toolRegenerateSQLWithFeedback(userQuery, validationResult.errors, semanticContext);
       currentSQL = sqlResult.sql;
       currentReasoning = sqlResult.reasoning;
 
       // Validate regenerated query
-      executionSteps.push("STEP 5: Validating regenerated SQL (Attempt 2)...");
+      executionSteps.push("STEP 6: Validating regenerated SQL (Attempt 2)...");
       validationResult = await toolValidateQuery(currentSQL, 2);
 
       if (!validationResult.valid) {
@@ -290,12 +330,12 @@ export async function runFinanceAgent(
       }
     }
 
-    // STEP 5/6: Execute Query
-    executionSteps.push("STEP 6: Executing validated query...");
+    // STEP 6/7: Execute Query
+    executionSteps.push("STEP 7: Executing validated query...");
     queryResults = await toolExecuteQuery(currentSQL);
 
-    // STEP 6/7: Format Results
-    executionSteps.push("STEP 7: Formatting results with insights...");
+    // STEP 7/8: Format Results
+    executionSteps.push("STEP 8: Formatting results with insights...");
     const { summary, insights } = toolFormatResults(currentSQL, queryResults, currentReasoning);
 
     // Add assistant message to history
@@ -323,6 +363,7 @@ export async function runFinanceAgent(
       tokens: getTokenUsage(),
       conversationHistory: updatedHistory,
       executionSteps,
+      semanticContext: semanticContextInfo,
     };
 
     console.log("\n" + "=".repeat(80));
