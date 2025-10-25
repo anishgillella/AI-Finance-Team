@@ -57,4 +57,55 @@ export interface ChromaResult {
     distance: number;
     metadata?: Record<string, any>;
 }
+export interface UploadedFile {
+    id: string;
+    filename: string;
+    file_path: string;
+    file_size: number;
+    upload_date: Date;
+    record_count: number;
+    date_range_start: Date;
+    date_range_end: Date;
+    status: 'processing' | 'completed' | 'failed';
+    error_message?: string;
+}
+export interface Analysis {
+    id: string;
+    file_id: string;
+    analysis_data: FinanceAgentState;
+    created_at: Date;
+    updated_at: Date;
+}
+export interface ChatSession {
+    id: string;
+    file_id: string;
+    messages: Message[];
+    created_at: Date;
+    updated_at: Date;
+}
+export interface UploadResponse {
+    success: boolean;
+    file_id: string;
+    filename: string;
+    record_count: number;
+    message?: string;
+    error?: string;
+}
+export interface QueryRequest {
+    file_id: string;
+    query: string;
+}
+export interface QueryResponse {
+    success: boolean;
+    answer: string;
+    analysis: AnalysisResult;
+    evaluation: EvaluationMetrics;
+    error?: string;
+}
+export interface AnalysisResponse {
+    success: boolean;
+    file_id: string;
+    analysis: FinanceAgentState;
+    error?: string;
+}
 //# sourceMappingURL=index.d.ts.map
