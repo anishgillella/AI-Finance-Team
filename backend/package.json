@@ -6,11 +6,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "ts-node src/index.ts",
-    "test": "ts-node src/agent-test.ts",
     "query": "node query-agent-runner.js",
-    "agent": "ts-node src/interactive-agent.ts",
-    "data:insert": "ts-node src/data/insert-mock-data.ts"
+    "dev": "ts-node src/query.ts"
   },
   "type": "module",
   "dependencies": {
