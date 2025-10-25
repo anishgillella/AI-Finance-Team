@@ -1,0 +1,33 @@
+{
+    "name": "ai-finance-agent-backend",
+    "version": "1.0.0",
+    "description": "Backend API for AI Finance Agent using LangGraph with GPT-4o-mini",
+    "main": "dist/index.js",
+    "scripts": {
+        "build": "tsc",
+        "start": "node dist/index.js",
+        "dev": "ts-node src/index.ts",
+        "test": "ts-node src/agent-test.ts",
+        "data:insert": "ts-node src/data/insert-mock-data.ts"
+    },
+    "type": "module",
+    "dependencies": {
+        "langchain": "^0.1.30",
+        "@langchain/core": "^0.1.50",
+        "@langchain/langgraph": "^0.0.30",
+        "@langchain/openai": "^0.0.30",
+        "@supabase/supabase-js": "^2.40.0",
+        "axios": "^1.7.0",
+        "csv-parse": "^5.5.0",
+        "dotenv": "^16.3.1",
+        "postgres": "^3.4.7",
+        "zod": "^3.22.4",
+        "@xenova/transformers": "^2.6.0",
+        "uuid": "^9.0.1"
+    },
+    "devDependencies": {
+        "@types/node": "^20.0.0",
+        "typescript": "^5.3.0",
+        "ts-node": "^10.9.0"
+    }
+}

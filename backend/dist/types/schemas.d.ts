@@ -6,17 +6,17 @@ export declare const FinancialRecordSchema: z.ZodObject<{
     description: z.ZodString;
     type: z.ZodEnum<["income", "expense"]>;
 }, "strip", z.ZodTypeAny, {
-    description: string;
-    type: "income" | "expense";
-    date: string;
-    category: string;
     amount: number;
+    date: string;
+    description: string;
+    category: string;
+    type: "income" | "expense";
 }, {
-    description: string;
-    type: "income" | "expense";
-    date: string;
-    category: string;
     amount: number;
+    date: string;
+    description: string;
+    category: string;
+    type: "income" | "expense";
 }>;
 export declare const KPISchema: z.ZodObject<{
     name: z.ZodString;
@@ -44,15 +44,15 @@ export declare const AnomalySchema: z.ZodObject<{
     severity: z.ZodEnum<["low", "medium", "high"]>;
     reason: z.ZodString;
 }, "strip", z.ZodTypeAny, {
+    amount: number;
     date: string;
     category: string;
-    amount: number;
     severity: "high" | "low" | "medium";
     reason: string;
 }, {
+    amount: number;
     date: string;
     category: string;
-    amount: number;
     severity: "high" | "low" | "medium";
     reason: string;
 }>;
