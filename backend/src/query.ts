@@ -1,6 +1,7 @@
 /**
- * FINANCE AGENT - MAIN QUERY INTERFACE
- * Takes natural language queries and returns results with execution steps
+ * TEXT-TO-SQL AGENT - MAIN ENTRY POINT
+ * Converts natural language questions into SQL queries and executes them
+ * Supports all SQL query types: COUNT, SELECT, JOIN, GROUP BY, WHERE, ORDER BY, etc.
  */
 
 import { runFinanceAgent, type AgentResponse } from "./agent/finance-agent.js";
@@ -11,19 +12,20 @@ async function main() {
   if (!query) {
     console.log(`
 ╔════════════════════════════════════════════════════════════════╗
-║          🤖 AI FINANCE AGENT - QUERY INTERFACE                ║
+║          📊 TEXT-TO-SQL AGENT - QUERY INTERFACE               ║
 ╚════════════════════════════════════════════════════════════════╝
 
 📝 Usage: npm run query "Your natural language question"
 
-💡 Examples:
-  • npm run query "How many accounts do we have?"
-  • npm run query "Show top 5 securities by market cap"
-  • npm run query "What is spending by category?"
-  • npm run query "Show portfolio holdings with security details"
-  • npm run query "Get recent transactions from last 30 days"
-  • npm run query "Calculate portfolio performance with gains"
-  • npm run query "Show users with their account balances"
+💡 Supported Query Types:
+  ✓ COUNT - npm run query "How many accounts do we have?"
+  ✓ SELECT - npm run query "Show top 10 accounts"
+  ✓ ORDER BY - npm run query "Show top 5 securities by market cap"
+  ✓ WHERE - npm run query "Show budgets where spent > 100000"
+  ✓ GROUP BY - npm run query "Show spending by category"
+  ✓ JOIN - npm run query "Show portfolio holdings with security names"
+  ✓ AGGREGATE - npm run query "Calculate portfolio performance with gains"
+  ✓ DATE - npm run query "Get transactions from last 30 days"
 `);
     process.exit(1);
   }
@@ -31,11 +33,11 @@ async function main() {
   try {
     console.log(`
 ╔════════════════════════════════════════════════════════════════╗
-║                    🤖 FINANCE AGENT QUERY                     ║
+║              📊 TEXT-TO-SQL AGENT - QUERY EXECUTION           ║
 ╚════════════════════════════════════════════════════════════════╝
 `);
 
-    console.log(`📝 Query: "${query}\n`);
+    console.log(`📝 Natural Language Query: "${query}\n`);
 
     const response: AgentResponse = await runFinanceAgent(query);
 
@@ -53,7 +55,7 @@ async function main() {
     // Display Generated SQL
     console.log(`
 ╔════════════════════════════════════════════════════════════════╗
-║                   🔍 GENERATED SQL QUERY                       ║
+║              🔍 GENERATED SQL QUERY                            ║
 ╚════════════════════════════════════════════════════════════════╝
 
 ${response.sql}

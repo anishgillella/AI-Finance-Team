@@ -266,7 +266,7 @@ export async function runFinanceAgent(
 
   try {
     console.log("\n" + "=".repeat(80));
-    console.log("🚀 FINANCE AGENT STARTED");
+    console.log("🚀 TEXT-TO-SQL AGENT STARTED");
     console.log("=".repeat(80));
 
     // Add user message to history

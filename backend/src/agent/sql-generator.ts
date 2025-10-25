@@ -20,10 +20,10 @@ const llm = new ChatOpenAI({
   model: process.env.OPENROUTER_MODEL || "openai/gpt-4o-mini",
   temperature: 0.2,
   maxTokens: 500,
-  configuration: {
-    baseURL: "https://openrouter.ai/api/v1",
-  },
-});
+    configuration: {
+      baseURL: "https://openrouter.ai/api/v1",
+    },
+  });
 
 export interface GeneratedSQL {
   sql: string;

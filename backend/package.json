@@ -1,7 +1,7 @@
 {
-  "name": "ai-finance-agent-backend",
+  "name": "text-to-sql-agent",
   "version": "1.0.0",
-  "description": "Backend API for AI Finance Agent using LangGraph with GPT-4o-mini",
+  "description": "Text-to-SQL Agent: Converts natural language questions into SQL queries for financial database. Supports all query types: COUNT, SELECT, WHERE, GROUP BY, JOIN, ORDER BY, DATE filtering, and calculations.",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
