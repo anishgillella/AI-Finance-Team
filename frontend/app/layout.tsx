@@ -23,7 +23,7 @@ export default function RootLayout({
               <h1 className="text-xl font-bold">AI Finance Agent</h1>
             </div>
             <div className="flex gap-6">
-              <a href="/dashboard" className="hover:text-cyan-400 transition">Dashboard</a>
+              <a href="/prompt-dashboard" className="hover:text-cyan-400 transition">Dashboard</a>
               <a href="/upload" className="hover:text-cyan-400 transition">Upload</a>
               <a href="/chat" className="hover:text-cyan-400 transition">Chat</a>
               <a href="/reports" className="hover:text-cyan-400 transition">Reports</a>

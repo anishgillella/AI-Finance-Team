@@ -1,6 +1,52 @@
 import http from 'http';
 import { URL } from 'url';
 
+// Import the new modules (when compiled)
+// Note: These will be available after building TypeScript files
+// For now, we'll create a mock handler
+
+async function generateDynamicDashboard(prompt) {
+  // This will call the backend TypeScript modules once they're compiled
+  // For MVP, we'll return structured mock data
+  
+  return {
+    success: true,
+    data: {
+      id: `dashboard_${Date.now()}`,
+      type: 'DYNAMIC',
+      title: 'Custom Dashboard',
+      description: `Generated from: "${prompt}"`,
+      widgets: [
+        {
+          id: 'widget_1',
+          type: 'kpi',
+          title: 'Total Value',
+          data: [{ value: 320000 }],
+          config: { type: 'kpi', value: '$320,000', unit: '' }
+        },
+        {
+          id: 'widget_2',
+          type: 'chart',
+          title: 'Breakdown',
+          data: [
+            { category: 'Technology', value: 150000 },
+            { category: 'Healthcare', value: 100000 },
+            { category: 'Finance', value: 70000 }
+          ],
+          config: { type: 'pie' }
+        }
+      ],
+      metrics: [
+        { name: 'Total Value', value: 320000, unit: '$' },
+        { name: 'Total Items', value: 3, unit: 'items' }
+      ],
+      insights: ['Dashboard generated from your prompt'],
+      summary: 'Dynamic dashboard created successfully'
+    },
+    timing: { totalExecutionTime: 1200, queriesExecuted: 2, widgetsGenerated: 2 }
+  };
+}
+
 function generateDashboard(type = 'PORTFOLIO') {
   const dashboards = {
     PORTFOLIO: {
@@ -166,7 +212,41 @@ const server = http.createServer((req, res) => {
 
   const url = new URL(req.url, `http://${req.headers.host}`);
 
-  // Handle dashboard generation endpoint
+  // NEW ENDPOINT: Generate dashboard from natural language prompt
+  if (url.pathname === '/api/dashboard/from-prompt' && req.method === 'POST') {
+    let body = '';
+
+    req.on('data', (chunk) => {
+      body += chunk.toString();
+    });
+
+    req.on('end', async () => {
+      try {
+        const parsed = JSON.parse(body);
+        const prompt = parsed.prompt;
+
+        if (!prompt) {
+          res.writeHead(400);
+          res.end(JSON.stringify({ success: false, error: 'Missing prompt field' }));
+          return;
+        }
+
+        console.log(`\n🎯 Generating dashboard from prompt: "${prompt}"`);
+
+        // Generate dashboard from prompt
+        const dashboard = await generateDynamicDashboard(prompt);
+
+        res.writeHead(200);
+        res.end(JSON.stringify(dashboard, null, 2));
+      } catch (err) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ success: false, error: `Invalid request: ${err.message}` }));
+      }
+    });
+    return;
+  }
+
+  // Handle dashboard generation endpoint (existing hardcoded)
   if (url.pathname === '/api/dashboard/generate' && req.method === 'POST') {
     let body = '';
 
