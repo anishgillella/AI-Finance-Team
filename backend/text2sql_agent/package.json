@@ -1,0 +1,30 @@
+{
+  "name": "text-to-sql-agent",
+  "version": "1.0.0",
+  "description": "Text-to-SQL Agent: Converts natural language questions into SQL queries for financial database",
+  "main": "dist/query.js",
+  "scripts": {
+    "query": "node query-agent-runner.js"
+  },
+  "type": "module",
+  "keywords": [
+    "text-to-sql",
+    "natural-language",
+    "sql-generation",
+    "financial-data",
+    "llm",
+    "semantic-search"
+  ],
+  "dependencies": {
+    "langchain": "^0.1.30",
+    "@langchain/core": "^0.1.50",
+    "@langchain/langgraph": "^0.0.30",
+    "@langchain/openai": "^0.0.30",
+    "@supabase/supabase-js": "^2.40.0",
+    "axios": "^1.7.0",
+    "dotenv": "^16.3.1",
+    "postgres": "^3.4.7",
+    "@xenova/transformers": "^2.6.0",
+    "uuid": "^9.0.1"
+  }
+}
