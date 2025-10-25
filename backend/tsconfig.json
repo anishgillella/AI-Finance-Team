@@ -4,7 +4,7 @@
     "module": "ES2020",
     "lib": ["ES2020"],
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": ".",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -13,8 +13,19 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "baseUrl": ".",
+    "paths": {
+      "@dashboard-agent/*": ["dashboard_agent/src/*"],
+      "@visualization-agent/*": ["visualization_agent/src/*"],
+      "@metric-agent/*": ["metric_agent/src/*"]
+    }
   },
-  "include": ["src/**/*"],
+  "include": [
+    "src/**/*",
+    "dashboard_agent/src/**/*",
+    "visualization_agent/src/**/*",
+    "metric_agent/src/**/*"
+  ],
   "exclude": ["node_modules", "dist"]
 }
