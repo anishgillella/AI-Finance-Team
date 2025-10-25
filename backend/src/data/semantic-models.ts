@@ -1,6 +1,6 @@
 /**
- * Semantic Models - 33 SQL patterns for the Finance Agent
- * These patterns cover all common query types and serve as examples for the LLM
+ * Semantic Models - Financial Domain Patterns
+ * SQL patterns for the Finance Agent covering all common financial queries
  */
 
 export interface SemanticModel {
@@ -15,118 +15,277 @@ export interface SemanticModel {
 }
 
 export const SEMANTIC_MODELS: SemanticModel[] = [
-  // ACTUAL SCHEMA MODELS FOR CUSTOMERS, CONVERSATIONS, ANALYSIS
-  
+  // USER & ACCOUNT MANAGEMENT
   {
-    id: "model_customer_count",
-    name: "Count Customers",
-    description: "Count total customers in the database",
-    sql: `SELECT COUNT(*) AS total_customers FROM customers LIMIT 1`,
-    tables: ["customers"],
+    id: "model_user_accounts",
+    name: "User Accounts Overview",
+    description: "Get all accounts for a user with balances",
+    sql: `SELECT u.email, u.name, a.account_name, a.account_type, a.balance, a.currency FROM users u LEFT JOIN accounts a ON u.id = a.user_id ORDER BY u.created_at DESC`,
+    tables: ["users", "accounts"],
+    operations: ["LEFT JOIN", "ORDER BY"],
+    use_cases: ["user_profile", "account_overview"],
+    text: "Get user account information with balances and account types",
+  },
+  {
+    id: "model_account_count",
+    name: "Total Accounts",
+    description: "Count total number of accounts",
+    sql: `SELECT COUNT(*) AS total_accounts FROM accounts`,
+    tables: ["accounts"],
     operations: ["COUNT"],
-    use_cases: ["customer_analytics", "summary"],
-    text: "Count the total number of customers in the database",
+    use_cases: ["account_statistics"],
+    text: "Count total accounts in the system",
   },
   {
-    id: "model_customers_by_industry",
-    name: "Customers by Industry",
-    description: "Group customers by their industry sector",
-    sql: `SELECT industry, COUNT(*) as customer_count FROM customers WHERE industry IS NOT NULL GROUP BY industry ORDER BY customer_count DESC`,
-    tables: ["customers"],
-    operations: ["GROUP BY", "COUNT", "WHERE"],
-    use_cases: ["customer_segmentation", "industry_analysis"],
-    text: "Analyze customer distribution across different industry sectors",
+    id: "model_accounts_by_type",
+    name: "Accounts by Type",
+    description: "Group accounts by type with count and total balance",
+    sql: `SELECT account_type, COUNT(*) as account_count, SUM(balance) as total_balance FROM accounts GROUP BY account_type ORDER BY account_count DESC`,
+    tables: ["accounts"],
+    operations: ["GROUP BY", "COUNT", "SUM"],
+    use_cases: ["account_analysis"],
+    text: "Analyze account distribution by type with total balances",
   },
+
+  // PORTFOLIO ANALYSIS
   {
-    id: "model_customer_details",
-    name: "Customer Details with Location",
-    description: "Get customer information with their location and contact details",
-    sql: `SELECT id, company_name, industry, location, email, phone_number, created_at FROM customers ORDER BY created_at DESC LIMIT 100`,
-    tables: ["customers"],
-    operations: ["SELECT", "ORDER BY", "LIMIT"],
-    use_cases: ["customer_lookup", "contact_list"],
-    text: "Retrieve customer details including company name, industry, location and contact information",
-  },
-  {
-    id: "model_customer_conversations",
-    name: "Customer Conversations",
-    description: "Join customers with their conversations to see interaction history",
-    sql: `SELECT c.company_name, c.industry, conv.id, conv.call_id, conv.transcript, conv.created_at FROM customers c LEFT JOIN conversations conv ON c.id = conv.customer_id ORDER BY conv.created_at DESC LIMIT 100`,
-    tables: ["customers", "conversations"],
+    id: "model_portfolio_holdings",
+    name: "Portfolio Holdings",
+    description: "Get portfolio holdings with security and market values",
+    sql: `SELECT ph.account_id, s.name, s.ticker, ph.quantity, ph.current_price, ph.market_value FROM portfolio_holdings ph LEFT JOIN securities s ON ph.security_id = s.id ORDER BY ph.market_value DESC LIMIT 100`,
+    tables: ["portfolio_holdings", "securities"],
     operations: ["LEFT JOIN", "ORDER BY", "LIMIT"],
-    use_cases: ["conversation_history", "customer_interactions"],
-    text: "Get customers with their conversation transcripts and call history",
+    use_cases: ["portfolio_overview", "holdings_list"],
+    text: "Show portfolio holdings with security names, tickers, and current market values",
   },
   {
-    id: "model_conversation_count_by_customer",
-    name: "Conversation Count per Customer",
-    description: "Count conversations for each customer",
-    sql: `SELECT c.id, c.company_name, COUNT(conv.id) as conversation_count FROM customers c LEFT JOIN conversations conv ON c.id = conv.customer_id GROUP BY c.id, c.company_name ORDER BY conversation_count DESC`,
-    tables: ["customers", "conversations"],
-    operations: ["LEFT JOIN", "GROUP BY", "COUNT"],
-    use_cases: ["customer_engagement", "activity_ranking"],
-    text: "Analyze customer engagement by counting total conversations per customer",
+    id: "model_top_holdings",
+    name: "Top Portfolio Holdings",
+    description: "Get top holdings by market value",
+    sql: `SELECT ph.account_id, s.name, s.ticker, ph.market_value FROM portfolio_holdings ph LEFT JOIN securities s ON ph.security_id = s.id ORDER BY ph.market_value DESC LIMIT 10`,
+    tables: ["portfolio_holdings", "securities"],
+    operations: ["LEFT JOIN", "ORDER BY", "LIMIT"],
+    use_cases: ["top_positions", "concentration_analysis"],
+    text: "Get the top 10 portfolio holdings by market value",
   },
   {
-    id: "model_recent_conversations",
-    name: "Recent Conversations",
-    description: "Get the most recent conversations with customer details",
-    sql: `SELECT c.company_name, conv.call_id, conv.created_at, SUBSTRING(conv.transcript, 1, 100) as transcript_preview FROM conversations conv JOIN customers c ON conv.customer_id = c.id ORDER BY conv.created_at DESC LIMIT 20`,
-    tables: ["conversations", "customers"],
-    operations: ["JOIN", "ORDER BY", "LIMIT", "SUBSTRING"],
-    use_cases: ["recent_activity", "conversation_review"],
-    text: "Get the most recent customer conversations with preview of transcript",
+    id: "model_portfolio_total_value",
+    name: "Total Portfolio Value by Account",
+    description: "Calculate total portfolio value for each account",
+    sql: `SELECT account_id, SUM(market_value) as total_portfolio_value, COUNT(*) as holding_count FROM portfolio_holdings GROUP BY account_id ORDER BY total_portfolio_value DESC`,
+    tables: ["portfolio_holdings"],
+    operations: ["GROUP BY", "SUM", "COUNT"],
+    use_cases: ["portfolio_valuation", "account_analysis"],
+    text: "Get total portfolio value and holding count for each account",
+  },
+
+  // TRANSACTION ANALYSIS
+  {
+    id: "model_transactions",
+    name: "Recent Transactions",
+    description: "Get recent financial transactions",
+    sql: `SELECT t.transaction_date, t.transaction_type, t.amount, t.category, t.merchant, a.account_name FROM transactions t LEFT JOIN accounts a ON t.account_id = a.id ORDER BY t.transaction_date DESC LIMIT 50`,
+    tables: ["transactions", "accounts"],
+    operations: ["LEFT JOIN", "ORDER BY", "LIMIT"],
+    use_cases: ["transaction_history", "activity_log"],
+    text: "View recent financial transactions with account and merchant details",
   },
   {
-    id: "model_analysis_scores_by_customer",
-    name: "Analysis Evaluation Scores by Customer",
-    description: "Join customers with analysis results and evaluation scores",
-    sql: `SELECT c.company_name, c.industry, AVG(e.accuracy) as avg_accuracy, AVG(e.faithfulness) as avg_faithfulness, AVG(e.overall_score) as avg_score FROM customers c LEFT JOIN conversations conv ON c.id = conv.customer_id LEFT JOIN embeddings emb ON conv.call_id = emb.call_id LEFT JOIN analysis_results ar ON ar.id = ar.id LEFT JOIN evaluations e ON e.analysis_id = ar.id WHERE e.overall_score IS NOT NULL GROUP BY c.id, c.company_name, c.industry ORDER BY avg_score DESC`,
-    tables: ["customers", "conversations", "analysis_results", "evaluations"],
-    operations: ["LEFT JOIN", "GROUP BY", "AVG", "WHERE"],
-    use_cases: ["quality_metrics", "performance_analysis"],
-    text: "Calculate average evaluation scores (accuracy, faithfulness) for each customer's analyses",
+    id: "model_transactions_by_type",
+    name: "Transactions by Type",
+    description: "Group transactions by type with counts and totals",
+    sql: `SELECT transaction_type, COUNT(*) as transaction_count, SUM(amount) as total_amount FROM transactions GROUP BY transaction_type ORDER BY transaction_count DESC`,
+    tables: ["transactions"],
+    operations: ["GROUP BY", "COUNT", "SUM"],
+    use_cases: ["transaction_analysis"],
+    text: "Analyze transaction distribution by type (buy, sell, transfer, deposit, withdrawal)",
   },
   {
-    id: "model_top_customers_by_conversations",
-    name: "Top Customers by Conversation Volume",
-    description: "Rank customers by their conversation frequency",
-    sql: `SELECT c.id, c.company_name, c.industry, COUNT(conv.id) as total_conversations FROM customers c LEFT JOIN conversations conv ON c.id = conv.customer_id GROUP BY c.id, c.company_name, c.industry HAVING COUNT(conv.id) > 0 ORDER BY total_conversations DESC LIMIT 10`,
-    tables: ["customers", "conversations"],
-    operations: ["LEFT JOIN", "GROUP BY", "HAVING", "COUNT", "ORDER BY", "LIMIT"],
-    use_cases: ["customer_ranking", "engagement_metrics"],
-    text: "Identify top customers with the most conversations and interactions",
+    id: "model_spending_by_category",
+    name: "Spending by Category",
+    description: "Analyze spending patterns by category",
+    sql: `SELECT category, COUNT(*) as transaction_count, SUM(amount) as total_spent FROM transactions WHERE category IS NOT NULL GROUP BY category ORDER BY total_spent DESC`,
+    tables: ["transactions"],
+    operations: ["GROUP BY", "COUNT", "SUM", "WHERE"],
+    use_cases: ["spending_analysis", "budgeting"],
+    text: "Get spending breakdown by transaction category",
+  },
+
+  // SECURITIES & MARKET DATA
+  {
+    id: "model_securities",
+    name: "Securities Catalog",
+    description: "Get list of all securities with types and sectors",
+    sql: `SELECT id, ticker, name, security_type, sector, industry, market_cap FROM securities ORDER BY market_cap DESC LIMIT 100`,
+    tables: ["securities"],
+    operations: ["ORDER BY", "LIMIT"],
+    use_cases: ["security_search", "market_overview"],
+    text: "View all securities with ticker, name, type, sector, and market cap",
   },
   {
-    id: "model_conversation_timeline",
-    name: "Customer Conversation Timeline",
-    description: "Show conversation activity over time for a customer",
-    sql: `SELECT DATE(conv.created_at) as conversation_date, COUNT(*) as daily_conversations FROM conversations conv GROUP BY DATE(conv.created_at) ORDER BY conversation_date DESC LIMIT 30`,
-    tables: ["conversations"],
-    operations: ["GROUP BY", "DATE", "COUNT", "ORDER BY"],
-    use_cases: ["timeline_analysis", "activity_trends"],
-    text: "Analyze conversation volume trends by date over the last month",
+    id: "model_top_securities",
+    name: "Top Securities by Market Cap",
+    description: "Get top securities ranked by market capitalization",
+    sql: `SELECT ticker, name, security_type, sector, market_cap FROM securities ORDER BY market_cap DESC LIMIT 10`,
+    tables: ["securities"],
+    operations: ["ORDER BY", "LIMIT"],
+    use_cases: ["market_leaders", "top_stocks"],
+    text: "Find the top 10 securities by market capitalization",
   },
   {
-    id: "model_evaluation_quality_report",
-    name: "Overall Evaluation Quality Report",
-    description: "Get quality metrics from all evaluations",
-    sql: `SELECT AVG(accuracy) as avg_accuracy, AVG(faithfulness) as avg_faithfulness, AVG(reasoning_quality) as avg_reasoning, AVG(overall_score) as avg_overall, COUNT(*) as total_evaluations FROM evaluations`,
-    tables: ["evaluations"],
-    operations: ["AVG", "COUNT"],
-    use_cases: ["quality_dashboard", "system_metrics"],
-    text: "Calculate system-wide quality metrics from all evaluation results",
+    id: "model_securities_by_sector",
+    name: "Securities by Sector",
+    description: "Group securities by sector",
+    sql: `SELECT sector, security_type, COUNT(*) as security_count, SUM(market_cap) as total_market_cap FROM securities GROUP BY sector, security_type ORDER BY total_market_cap DESC`,
+    tables: ["securities"],
+    operations: ["GROUP BY", "COUNT", "SUM"],
+    use_cases: ["sector_analysis", "market_composition"],
+    text: "Analyze securities distribution across sectors and types",
+  },
+
+  // PRICE HISTORY & TRENDS
+  {
+    id: "model_price_history",
+    name: "Price History",
+    description: "Get historical price data for securities",
+    sql: `SELECT s.name, s.ticker, ph.history_date, ph.open_price, ph.close_price, ph.high_price, ph.low_price, ph.volume FROM price_history ph LEFT JOIN securities s ON ph.security_id = s.id ORDER BY ph.history_date DESC LIMIT 100`,
+    tables: ["price_history", "securities"],
+    operations: ["LEFT JOIN", "ORDER BY", "LIMIT"],
+    use_cases: ["price_trends", "historical_data"],
+    text: "View historical price data including OHLC and trading volume",
+  },
+  {
+    id: "model_price_changes",
+    name: "Recent Price Changes",
+    description: "Calculate price changes for recent dates",
+    sql: `SELECT s.name, s.ticker, ph.history_date, (ph.close_price - ph.open_price) as daily_change, ((ph.close_price - ph.open_price) / ph.open_price * 100) as percent_change FROM price_history ph LEFT JOIN securities s ON ph.security_id = s.id ORDER BY ph.history_date DESC LIMIT 100`,
+    tables: ["price_history", "securities"],
+    operations: ["LEFT JOIN", "ORDER BY"],
+    use_cases: ["price_analysis", "volatility"],
+    text: "Track daily price changes and percentage movements",
+  },
+
+  // DIVIDEND ANALYSIS
+  {
+    id: "model_dividends",
+    name: "Dividend Payments",
+    description: "Get dividend payment history",
+    sql: `SELECT s.name, s.ticker, d.ex_date, d.payment_date, d.amount_per_share, d.total_amount FROM dividends d LEFT JOIN securities s ON d.security_id = s.id ORDER BY d.payment_date DESC LIMIT 50`,
+    tables: ["dividends", "securities"],
+    operations: ["LEFT JOIN", "ORDER BY", "LIMIT"],
+    use_cases: ["dividend_tracking", "income_analysis"],
+    text: "View dividend payment history with dates and amounts",
+  },
+  {
+    id: "model_total_dividends",
+    name: "Total Dividends Received",
+    description: "Calculate total dividends by account",
+    sql: `SELECT account_id, SUM(total_amount) as total_dividends, COUNT(*) as dividend_count FROM dividends GROUP BY account_id ORDER BY total_dividends DESC`,
+    tables: ["dividends"],
+    operations: ["GROUP BY", "SUM", "COUNT"],
+    use_cases: ["income_calculation", "dividend_summary"],
+    text: "Calculate total dividends received per account",
+  },
+
+  // BUDGET & EXPENSE TRACKING
+  {
+    id: "model_budgets",
+    name: "Budget Overview",
+    description: "Get budget status with spending progress",
+    sql: `SELECT b.category, b.limit_amount, b.spent_amount, (b.spent_amount / b.limit_amount * 100) as percent_spent, (b.limit_amount - b.spent_amount) as remaining FROM budgets b ORDER BY percent_spent DESC`,
+    tables: ["budgets"],
+    operations: ["ORDER BY"],
+    use_cases: ["budget_tracking", "expense_monitoring"],
+    text: "View budget status with spending progress and remaining amounts",
+  },
+  {
+    id: "model_budget_alerts",
+    name: "Over Budget Categories",
+    description: "Find categories where spending exceeds budget",
+    sql: `SELECT category, limit_amount, spent_amount, (spent_amount - limit_amount) as overage FROM budgets WHERE spent_amount > limit_amount ORDER BY overage DESC`,
+    tables: ["budgets"],
+    operations: ["WHERE", "ORDER BY"],
+    use_cases: ["budget_alerts", "expense_control"],
+    text: "Identify budget categories that are over the limit",
+  },
+
+  // FINANCIAL GOALS
+  {
+    id: "model_financial_goals",
+    name: "Financial Goals",
+    description: "Get all financial goals with progress",
+    sql: `SELECT goal_name, goal_type, target_amount, current_amount, (current_amount / target_amount * 100) as percent_achieved, target_date, priority, status FROM financial_goals ORDER BY target_date ASC`,
+    tables: ["financial_goals"],
+    operations: ["ORDER BY"],
+    use_cases: ["goal_tracking", "progress_monitoring"],
+    text: "Track financial goals with achievement progress and target dates",
+  },
+  {
+    id: "model_active_goals",
+    name: "Active Financial Goals",
+    description: "Get active financial goals ranked by priority",
+    sql: `SELECT goal_name, goal_type, target_amount, current_amount, priority, target_date FROM financial_goals WHERE status = 'active' ORDER BY priority DESC, target_date ASC`,
+    tables: ["financial_goals"],
+    operations: ["WHERE", "ORDER BY"],
+    use_cases: ["goal_prioritization"],
+    text: "View active financial goals sorted by priority",
+  },
+
+  // ACCOUNT BALANCES
+  {
+    id: "model_account_balances",
+    name: "Account Balances",
+    description: "Get all accounts with current balances",
+    sql: `SELECT account_name, account_type, balance, currency, created_at FROM accounts ORDER BY balance DESC LIMIT 100`,
+    tables: ["accounts"],
+    operations: ["ORDER BY", "LIMIT"],
+    use_cases: ["balance_overview", "account_status"],
+    text: "View all accounts with current balances and currencies",
+  },
+  {
+    id: "model_total_assets",
+    name: "Total Assets by Currency",
+    description: "Calculate total assets by currency",
+    sql: `SELECT currency, COUNT(*) as account_count, SUM(balance) as total_balance FROM accounts GROUP BY currency ORDER BY total_balance DESC`,
+    tables: ["accounts"],
+    operations: ["GROUP BY", "COUNT", "SUM"],
+    use_cases: ["asset_allocation", "currency_exposure"],
+    text: "Get total assets broken down by currency",
+  },
+
+  // PERFORMANCE METRICS
+  {
+    id: "model_portfolio_performance",
+    name: "Portfolio Performance",
+    description: "Calculate gain/loss on portfolio holdings",
+    sql: `SELECT s.name, s.ticker, ph.quantity, ph.average_cost, ph.current_price, (ph.current_price - ph.average_cost) as gain_per_share, ((ph.current_price - ph.average_cost) / ph.average_cost * 100) as percent_gain FROM portfolio_holdings ph LEFT JOIN securities s ON ph.security_id = s.id ORDER BY percent_gain DESC`,
+    tables: ["portfolio_holdings", "securities"],
+    operations: ["LEFT JOIN", "ORDER BY"],
+    use_cases: ["performance_analysis", "gain_loss"],
+    text: "Analyze portfolio performance with gain/loss calculations",
+  },
+
+  // COMPLEX AGGREGATIONS
+  {
+    id: "model_net_worth",
+    name: "Total Net Worth",
+    description: "Calculate total net worth from accounts and holdings",
+    sql: `SELECT (SUM(a.balance) + SUM(ph.market_value)) as total_net_worth FROM accounts a, portfolio_holdings ph`,
+    tables: ["accounts", "portfolio_holdings"],
+    operations: ["SUM"],
+    use_cases: ["wealth_calculation"],
+    text: "Calculate total net worth from cash accounts and portfolio holdings",
+  },
+  {
+    id: "model_monthly_activity",
+    name: "Monthly Transaction Activity",
+    description: "Get transaction activity by month",
+    sql: `SELECT DATE_TRUNC('month', transaction_date) as month, COUNT(*) as transaction_count, SUM(amount) as total_amount FROM transactions GROUP BY DATE_TRUNC('month', transaction_date) ORDER BY month DESC`,
+    tables: ["transactions"],
+    operations: ["GROUP BY", "DATE_TRUNC", "COUNT", "SUM"],
+    use_cases: ["activity_trends", "monthly_analysis"],
+    text: "Analyze transaction activity by month",
   },
 ];
 
-export function getSemanticModelById(id: string): SemanticModel | undefined {
-  return SEMANTIC_MODELS.find((model) => model.id === id);
-}
-
-export function getAllSemanticModels(): SemanticModel[] {
-  return SEMANTIC_MODELS;
-}
-
-export function getModelsByUseCase(useCase: string): SemanticModel[] {
-  return SEMANTIC_MODELS.filter((model) => model.use_cases.includes(useCase));
-}
+export default SEMANTIC_MODELS;
